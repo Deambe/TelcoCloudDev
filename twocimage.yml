@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: fluentd
+  name: nginx
+spec:
+  replicas: 6 # 3 Pods should exist at all times.
+  selector:  # Pods label should be defined in ReplicaSet label selector
+    matchLabels:
+      app: logging-container
+      app: nginx
+  template:
+    metadata:
+      name: logging-container-pod
+      labels:
+        app: logging-container # Atleast 1 Pod label should match with ReplicaSet Label Selector
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+      - name: logging-container
+        image: fluentd:latest
+        ports:
+          - containerPort: 80
