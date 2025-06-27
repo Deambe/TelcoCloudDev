@@ -1,0 +1,40 @@
+serverFiles:
+  alerting_rules.yml:
+      groups:
+      - name: ksm
+        rules:
+        # Alert for any instance that is unreachable for >5 minutes.
+        - alert: InstanceDown
+          expr: up{job="kubernetes-nodes"} == 0
+          for: 2m
+          labels:
+            severity: page
+          annotations:
+            host: "{{ $labels.kubernetes_io_hostname }}"
+            summary: "Instance down"
+            description: "Node {{ $labels.kubernetes_io_hostname  }}has been down for more than 5 minutes."
+        - alert: HighTemperature
+          expr: node_thermal_zone_temp{zone="cpu"} > 15
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            instance: "{{ $labels.instance }}"
+            summary: "High Temperature Alert for {{ $labels.zone }}"
+            description: "The temperature for {{ $labels.zone }} on instance {{ $labels.instance }} has exceeded 75°C for more than 5 minutes. Current temperature is {{ $value }}°C."
+        - alert: KubePodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total{job="kubernetes-service-endpoints",namespace=~".*"}[5m]) * 60 * 5 > 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            description: Pod {{ $labels.namespace }}/{{ $labels.pod }} ({{ $labels.container }}) is restarting {{ printf "%.2f" $value }} times / 5 minutes.
+            summary: Pod is crash looping.
+        - alert: KubePodNotReady
+          expr: sum by(namespace, pod) (max by(namespace, pod) (kube_pod_status_phase{job="kubernetes-service-endpoints",namespace=~".*",phase=~"Pending|Unknown"}) * on(namespace, pod)    group_left(owner_kind) topk by(namespace, pod) (1, max by(namespace, pod, owner_kind) (kube_pod_owner{owner_kind!="Job"}))) > 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            description: Pod {{ $labels.namespace }}/{{ $labels.pod }} has been in a non-ready state for longer than 1 minutes.
+            summary: Pod has been in a non-ready state for more than 2 minutes.
