@@ -69,7 +69,7 @@ spec:
   - metadata:
       name: data
     spec:
-      storageClassname: "standard"
+      storageClassName: "standard"
       accessModes: ["ReadWriteOnce"]
       resources:
         requests:
